@@ -5,10 +5,20 @@ topology:
     kind: linux
     image: frr:10.7.1-ssh
     sysctls:
-        net.ipv6.conf.all.forwarding: 1
-        net.ipv6.conf.default.forwarding: 1
+      net.ipv6.conf.all.forwarding: 1
+      net.ipv6.conf.default.forwarding: 1
 
   nodes:
+    # FASE 7: servidor web externo
+    web-externo:
+      kind: linux
+      image: pc1-web:nginx-alpine
+      exec:
+        - ip link set eth1 up
+        - ip -4 address add 198.51.100.2/30 dev eth1
+        - "ip -6 address add 2001:db8:100:50::2/64 dev eth1"
+        - ip -4 route replace default via 198.51.100.1 dev eth1 onlink
+        - "ip -6 route replace default via 2001:db8:100:50::1 dev eth1 metric 100 onlink"
     # ==========================================
     # AS 100 (ISP OSPF & iBGP)
     # ==========================================
@@ -90,7 +100,6 @@ topology:
       binds:
         - ./configs/as200-borde2/frr.conf:/etc/frr/frr.conf
 
-
     # ==========================================
     # FASE 5: CPE DE LA EMPRESA Y LAN COMPARTIDA
     # ==========================================
@@ -103,10 +112,12 @@ topology:
         - ./configs/empresa/wan-monitor.sh:/opt/pc1/wan-monitor.sh:ro
       exec:
         - ip -4 route replace default via 10.100.50.1 dev eth1 onlink
-        - "ip -6 route replace default via fd10:100:50:: dev eth1 metric 100 onlink"
+        - "ip -6 route replace default via fd10:100:50:: dev eth1 metric 100
+          onlink"
         - sh /opt/pc1/vrrp-init.sh
         - sh /opt/pc1/nat-init.sh
-        - "sh -c 'nohup sh /opt/pc1/wan-monitor.sh 172.16.1.1 >/tmp/pc1-wan-monitor.log 2>&1 </dev/null &'"
+        - "sh -c 'nohup sh /opt/pc1/wan-monitor.sh 172.16.1.1
+          >/tmp/pc1-wan-monitor.log 2>&1 </dev/null &'"
     cpe-isp2:
       image: pc1-cpe-nat:10.7.1-ssh
       binds:
@@ -116,10 +127,12 @@ topology:
         - ./configs/empresa/wan-monitor.sh:/opt/pc1/wan-monitor.sh:ro
       exec:
         - ip -4 route replace default via 10.200.50.1 dev eth1 onlink
-        - "ip -6 route replace default via fd20:200:50:: dev eth1 metric 100 onlink"
+        - "ip -6 route replace default via fd20:200:50:: dev eth1 metric 100
+          onlink"
         - sh /opt/pc1/vrrp-init.sh
         - sh /opt/pc1/nat-init.sh
-        - "sh -c 'nohup sh /opt/pc1/wan-monitor.sh 10.200.1.1 >/tmp/pc1-wan-monitor.log 2>&1 </dev/null &'"
+        - "sh -c 'nohup sh /opt/pc1/wan-monitor.sh 10.200.1.1
+          >/tmp/pc1-wan-monitor.log 2>&1 </dev/null &'"
     lan-empresa:
       kind: linux
       image: frr:10.7.1-ssh
@@ -134,73 +147,74 @@ topology:
         - ip link set dev br-lan type bridge mcast_snooping 0
 
   links:
+    - endpoints: ["as100-pe2:eth3", "web-externo:eth1"]
     # ------------------------------------------
     # INTERCONEXIÓN DE BORDE REDUNDANTE (eBGP)
     # ------------------------------------------
     # Malla cruzada entre los 4 routers de borde internacionales
-    - endpoints: ["as100-borde1:eth1", "as200-borde1:eth1"]
-    - endpoints: ["as100-borde1:eth2", "as200-borde2:eth1"]
-    - endpoints: ["as100-borde2:eth1", "as200-borde1:eth2"]
-    - endpoints: ["as100-borde2:eth2", "as200-borde2:eth2"]
+    - endpoints: [ "as100-borde1:eth1", "as200-borde1:eth1" ]
+    - endpoints: [ "as100-borde1:eth2", "as200-borde2:eth1" ]
+    - endpoints: [ "as100-borde2:eth1", "as200-borde1:eth2" ]
+    - endpoints: [ "as100-borde2:eth2", "as200-borde2:eth2" ]
 
     # ------------------------------------------
     # ENLACES INTERNOS AS 100 (OSPF)
     # ------------------------------------------
     # Core de 5 Routers P interconectados en anillo con enlaces cruzados
-    - endpoints: ["as100-p1:eth1", "as100-p2:eth1"]
-    - endpoints: ["as100-p2:eth2", "as100-p3:eth1"]
-    - endpoints: ["as100-p3:eth2", "as100-p4:eth1"]
-    - endpoints: ["as100-p4:eth2", "as100-p5:eth1"]
-    - endpoints: ["as100-p5:eth2", "as100-p1:eth2"]
-    - endpoints: ["as100-p2:eth3", "as100-p4:eth3"] # Enlace cruzado de transporte
+    - endpoints: [ "as100-p1:eth1", "as100-p2:eth1" ]
+    - endpoints: [ "as100-p2:eth2", "as100-p3:eth1" ]
+    - endpoints: [ "as100-p3:eth2", "as100-p4:eth1" ]
+    - endpoints: [ "as100-p4:eth2", "as100-p5:eth1" ]
+    - endpoints: [ "as100-p5:eth2", "as100-p1:eth2" ]
+    - endpoints: [ "as100-p2:eth3", "as100-p4:eth3" ] # Enlace cruzado de transporte
 
     # Conexión redundante de los Route Reflectors al Core P
-    - endpoints: ["as100-rr1:eth1", "as100-p1:eth3"]
-    - endpoints: ["as100-rr1:eth2", "as100-p2:eth4"]
-    - endpoints: ["as100-rr2:eth1", "as100-p2:eth5"]
-    - endpoints: ["as100-rr2:eth2", "as100-p3:eth3"]
+    - endpoints: [ "as100-rr1:eth1", "as100-p1:eth3" ]
+    - endpoints: [ "as100-rr1:eth2", "as100-p2:eth4" ]
+    - endpoints: [ "as100-rr2:eth1", "as100-p2:eth5" ]
+    - endpoints: [ "as100-rr2:eth2", "as100-p3:eth3" ]
 
     # Conexión redundante de los PE al Core P
-    - endpoints: ["as100-pe1:eth1", "as100-p4:eth4"]
-    - endpoints: ["as100-pe1:eth2", "as100-p5:eth3"]
-    - endpoints: ["as100-pe2:eth1", "as100-p5:eth4"]
-    - endpoints: ["as100-pe2:eth2", "as100-p1:eth4"]
+    - endpoints: [ "as100-pe1:eth1", "as100-p4:eth4" ]
+    - endpoints: [ "as100-pe1:eth2", "as100-p5:eth3" ]
+    - endpoints: [ "as100-pe2:eth1", "as100-p5:eth4" ]
+    - endpoints: [ "as100-pe2:eth2", "as100-p1:eth4" ]
 
     # Conexión redundante de los Routers de BGP Borde al Core P
-    - endpoints: ["as100-borde1:eth3", "as100-p3:eth4"]
-    - endpoints: ["as100-borde2:eth3", "as100-p4:eth5"]
+    - endpoints: [ "as100-borde1:eth3", "as100-p3:eth4" ]
+    - endpoints: [ "as100-borde2:eth3", "as100-p4:eth5" ]
 
     # ------------------------------------------
     # ENLACES INTERNOS AS 200 (IS-IS)
     # ------------------------------------------
     # Core de 5 Routers P interconectados en anillo con enlaces cruzados
-    - endpoints: ["as200-p1:eth1", "as200-p2:eth1"]
-    - endpoints: ["as200-p2:eth2", "as200-p3:eth1"]
-    - endpoints: ["as200-p3:eth2", "as200-p4:eth1"]
-    - endpoints: ["as200-p4:eth2", "as200-p5:eth1"]
-    - endpoints: ["as200-p5:eth2", "as200-p1:eth2"]
-    - endpoints: ["as200-p2:eth3", "as200-p4:eth3"] # Enlace cruzado de transporte
+    - endpoints: [ "as200-p1:eth1", "as200-p2:eth1" ]
+    - endpoints: [ "as200-p2:eth2", "as200-p3:eth1" ]
+    - endpoints: [ "as200-p3:eth2", "as200-p4:eth1" ]
+    - endpoints: [ "as200-p4:eth2", "as200-p5:eth1" ]
+    - endpoints: [ "as200-p5:eth2", "as200-p1:eth2" ]
+    - endpoints: [ "as200-p2:eth3", "as200-p4:eth3" ] # Enlace cruzado de transporte
 
     # Conexión redundante de los Route Reflectors al Core P
-    - endpoints: ["as200-rr1:eth1", "as200-p1:eth3"]
-    - endpoints: ["as200-rr1:eth2", "as200-p2:eth4"]
-    - endpoints: ["as200-rr2:eth1", "as200-p2:eth5"]
-    - endpoints: ["as200-rr2:eth2", "as200-p3:eth3"]
+    - endpoints: [ "as200-rr1:eth1", "as200-p1:eth3" ]
+    - endpoints: [ "as200-rr1:eth2", "as200-p2:eth4" ]
+    - endpoints: [ "as200-rr2:eth1", "as200-p2:eth5" ]
+    - endpoints: [ "as200-rr2:eth2", "as200-p3:eth3" ]
 
     # Conexión redundante de los PE al Core P
-    - endpoints: ["as200-pe1:eth1", "as200-p4:eth4"]
-    - endpoints: ["as200-pe1:eth2", "as200-p5:eth3"]
-    - endpoints: ["as200-pe2:eth1", "as200-p5:eth4"]
-    - endpoints: ["as200-pe2:eth2", "as200-p1:eth4"]
+    - endpoints: [ "as200-pe1:eth1", "as200-p4:eth4" ]
+    - endpoints: [ "as200-pe1:eth2", "as200-p5:eth3" ]
+    - endpoints: [ "as200-pe2:eth1", "as200-p5:eth4" ]
+    - endpoints: [ "as200-pe2:eth2", "as200-p1:eth4" ]
 
     # Conexión redundante de los Routers de BGP Borde al Core P
-    - endpoints: ["as200-borde1:eth3", "as200-p3:eth4"]
-    - endpoints: ["as200-borde2:eth3", "as200-p4:eth5"]
+    - endpoints: [ "as200-borde1:eth3", "as200-p3:eth4" ]
+    - endpoints: [ "as200-borde2:eth3", "as200-p4:eth5" ]
 
     # ------------------------------------------
     # FASE 5: EMPRESA - ENLACES A LOS ISP Y LAN
     # ------------------------------------------
-    - endpoints: ["as100-pe1:eth3", "cpe-isp1:eth1"]
-    - endpoints: ["as200-pe1:eth3", "cpe-isp2:eth1"]
-    - endpoints: ["cpe-isp1:eth2", "lan-empresa:eth1"]
-    - endpoints: ["cpe-isp2:eth2", "lan-empresa:eth2"]
+    - endpoints: [ "as100-pe1:eth3", "cpe-isp1:eth1" ]
+    - endpoints: [ "as200-pe1:eth3", "cpe-isp2:eth1" ]
+    - endpoints: [ "cpe-isp1:eth2", "lan-empresa:eth1" ]
+    - endpoints: [ "cpe-isp2:eth2", "lan-empresa:eth2" ]

@@ -958,7 +958,7 @@
       }
     },
     {
-      "id": "as100-r2",
+      "id": "web-externo",
       "position": {
         "x": 20,
         "y": 240
@@ -1345,5 +1345,17 @@
   ],
   "edgeAnnotations": [],
   "aliasEndpointAnnotations": [],
-  "viewerSettings": {}
+  "viewerSettings": {
+    "style": "default",
+    "linkLabelMode": "show-all",
+    "lastNonTelemetryLinkLabelMode": "show-all",
+    "telemetryNodeSizePx": 40,
+    "telemetryInterfaceSizePercent": 100,
+    "showRateLabels": false,
+    "autoCreateTrafficRateAnnotations": false,
+    "gridLineWidth": 0.6,
+    "gridStyle": "quadratic",
+    "gridColor": null,
+    "gridBgColor": null
+  }
 }
