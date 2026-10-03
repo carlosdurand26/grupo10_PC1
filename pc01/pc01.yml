@@ -97,15 +97,19 @@ topology:
     cpe-isp1:
       binds:
         - ./configs/cpe-isp1/frr.conf:/etc/frr/frr.conf
+        - ./configs/cpe-isp1/vrrp-init.sh:/opt/pc1/vrrp-init.sh:ro
       exec:
         - ip -4 route replace default via 10.100.50.1 dev eth1 onlink
         - "ip -6 route replace default via fd10:100:50:: dev eth1 metric 100 onlink"
+        - sh /opt/pc1/vrrp-init.sh
     cpe-isp2:
       binds:
         - ./configs/cpe-isp2/frr.conf:/etc/frr/frr.conf
+        - ./configs/cpe-isp2/vrrp-init.sh:/opt/pc1/vrrp-init.sh:ro
       exec:
         - ip -4 route replace default via 10.200.50.1 dev eth1 onlink
         - "ip -6 route replace default via fd20:200:50:: dev eth1 metric 100 onlink"
+        - sh /opt/pc1/vrrp-init.sh
     lan-empresa:
       kind: linux
       image: frr:10.7.1-ssh
@@ -117,6 +121,7 @@ topology:
         - ip link set eth1 up
         - ip link set eth2 up
         - ip link set br-lan up
+        - ip link set dev br-lan type bridge mcast_snooping 0
 
   links:
     # ------------------------------------------
