@@ -9,6 +9,19 @@ topology:
       net.ipv6.conf.default.forwarding: 1
 
   nodes:
+    # FASE 8: cliente empresarial Firefox con interfaz grafica web.
+    cliente-empresa:
+      kind: linux
+      image: pc1-cliente-firefox:latest
+      shm-size: 1GB
+      ports:
+        - "127.0.0.1:5800:5800"
+      exec:
+        - ip link set eth1 up
+        - ip -4 address add 192.168.50.10/24 dev eth1
+        - "ip -6 address add fd50:50::10/64 dev eth1"
+        - ip -4 route replace default via 192.168.50.1 dev eth1 onlink
+        - "ip -6 route replace default via fd50:50::1 dev eth1 metric 100 onlink"
     # FASE 7: servidor web externo
     web-externo:
       kind: linux
@@ -141,12 +154,15 @@ topology:
         - ip link add br-lan type bridge
         - ip link set eth1 master br-lan
         - ip link set eth2 master br-lan
+        - ip link set eth3 master br-lan
         - ip link set eth1 up
         - ip link set eth2 up
+        - ip link set eth3 up
         - ip link set br-lan up
         - ip link set dev br-lan type bridge mcast_snooping 0
 
   links:
+    - endpoints: ["lan-empresa:eth3", "cliente-empresa:eth1"]
     - endpoints: ["as100-pe2:eth3", "web-externo:eth1"]
     # ------------------------------------------
     # INTERCONEXIÓN DE BORDE REDUNDANTE (eBGP)
