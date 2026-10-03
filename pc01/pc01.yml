@@ -90,6 +90,34 @@ topology:
       binds:
         - ./configs/as200-borde2/frr.conf:/etc/frr/frr.conf
 
+
+    # ==========================================
+    # FASE 5: CPE DE LA EMPRESA Y LAN COMPARTIDA
+    # ==========================================
+    cpe-isp1:
+      binds:
+        - ./configs/cpe-isp1/frr.conf:/etc/frr/frr.conf
+      exec:
+        - ip -4 route replace default via 10.100.50.1 dev eth1 onlink
+        - "ip -6 route replace default via fd10:100:50:: dev eth1 metric 100 onlink"
+    cpe-isp2:
+      binds:
+        - ./configs/cpe-isp2/frr.conf:/etc/frr/frr.conf
+      exec:
+        - ip -4 route replace default via 10.200.50.1 dev eth1 onlink
+        - "ip -6 route replace default via fd20:200:50:: dev eth1 metric 100 onlink"
+    lan-empresa:
+      kind: linux
+      image: frr:10.7.1-ssh
+      # Puente L2 creado DENTRO del contenedor (no requiere bridge externo del host).
+      exec:
+        - ip link add br-lan type bridge
+        - ip link set eth1 master br-lan
+        - ip link set eth2 master br-lan
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip link set br-lan up
+
   links:
     # ------------------------------------------
     # INTERCONEXIÓN DE BORDE REDUNDANTE (eBGP)
@@ -153,3 +181,11 @@ topology:
     # Conexión redundante de los Routers de BGP Borde al Core P
     - endpoints: ["as200-borde1:eth3", "as200-p3:eth4"]
     - endpoints: ["as200-borde2:eth3", "as200-p4:eth5"]
+
+    # ------------------------------------------
+    # FASE 5: EMPRESA - ENLACES A LOS ISP Y LAN
+    # ------------------------------------------
+    - endpoints: ["as100-pe1:eth3", "cpe-isp1:eth1"]
+    - endpoints: ["as200-pe1:eth3", "cpe-isp2:eth1"]
+    - endpoints: ["cpe-isp1:eth2", "lan-empresa:eth1"]
+    - endpoints: ["cpe-isp2:eth2", "lan-empresa:eth2"]
