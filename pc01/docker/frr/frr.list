@@ -1,0 +1,1 @@
+deb [signed-by=/etc/apt/keyrings/frrouting.gpg] https://deb.frrouting.org/frr trixie frr-stable
