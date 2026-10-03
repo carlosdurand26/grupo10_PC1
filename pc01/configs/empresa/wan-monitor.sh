@@ -1,7 +1,4 @@
 #!/bin/sh
-# Fase 6C: supervisa la salida WAN eth1 de este CPE y controla VRRP VRID 50.
-# Comprueba la loopback del PE del ISP via eth1; NO usa eth0 de gestion.
-# Uso: sh /opt/pc1/wan-monitor.sh <loopback-ipv4-del-PE>
 set -eu
 
 TARGET="${1:?Especificar loopback IPv4 del PE}"
@@ -31,7 +28,6 @@ log "Iniciado: objetivo=$TARGET, intervalo=${INTERVAL}s, perdida=$FAIL_LIMIT, re
 printf 'UNKNOWN\n' > "$STATUS"
 
 while :; do
-    # -I eth1 obliga a comprobar la WAN de este CPE, no eth0 de Docker.
     if ping -4 -n -I eth1 -c 1 -W 1 "$TARGET" >/dev/null 2>&1; then
         FAILS=0
         OKS=$((OKS + 1))

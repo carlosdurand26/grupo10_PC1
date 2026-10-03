@@ -1,5 +1,4 @@
 #!/bin/sh
-# Pruebas iniciales sin modificar los contenedores.
 set -u
 C=clab-pc01-cliente-empresa
 printf '===== CLIENTE Y DIRECCIONES =====\n'
