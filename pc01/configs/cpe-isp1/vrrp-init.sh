@@ -2,6 +2,9 @@
 # VRRPv3, ID 50, IPv4 e IPv6. Se ejecuta al desplegar Containerlab.
 # FRR requiere macvlan en modo bridge con las MAC virtuales del RFC 5798.
 set -eu
+
+# Evitar respuestas ARP por la VIP desde interfaces incorrectas.
+sysctl -w net.ipv4.conf.all.arp_ignore=1
 ip link show dev eth2 >/dev/null
 
 # Dos macvlan separados: MAC VRRP IPv4 00:00:5e:00:01:32;

@@ -95,21 +95,27 @@ topology:
     # FASE 5: CPE DE LA EMPRESA Y LAN COMPARTIDA
     # ==========================================
     cpe-isp1:
+      image: pc1-cpe-nat:10.7.1-ssh
       binds:
         - ./configs/cpe-isp1/frr.conf:/etc/frr/frr.conf
         - ./configs/cpe-isp1/vrrp-init.sh:/opt/pc1/vrrp-init.sh:ro
+        - ./configs/empresa/nat-init.sh:/opt/pc1/nat-init.sh:ro
       exec:
         - ip -4 route replace default via 10.100.50.1 dev eth1 onlink
         - "ip -6 route replace default via fd10:100:50:: dev eth1 metric 100 onlink"
         - sh /opt/pc1/vrrp-init.sh
+        - sh /opt/pc1/nat-init.sh
     cpe-isp2:
+      image: pc1-cpe-nat:10.7.1-ssh
       binds:
         - ./configs/cpe-isp2/frr.conf:/etc/frr/frr.conf
         - ./configs/cpe-isp2/vrrp-init.sh:/opt/pc1/vrrp-init.sh:ro
+        - ./configs/empresa/nat-init.sh:/opt/pc1/nat-init.sh:ro
       exec:
         - ip -4 route replace default via 10.200.50.1 dev eth1 onlink
         - "ip -6 route replace default via fd20:200:50:: dev eth1 metric 100 onlink"
         - sh /opt/pc1/vrrp-init.sh
+        - sh /opt/pc1/nat-init.sh
     lan-empresa:
       kind: linux
       image: frr:10.7.1-ssh
